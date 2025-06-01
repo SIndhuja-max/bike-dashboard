@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Bike Dashboard - Search with Images & Firestore</title>
+  <link rel="stylesheet" href="/styles.css" />
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #f0f2f5;
+      margin: 0;
+      padding: 40px 20px;
+      display: flex;
+      justify-content: center;
+    }
+    .dashboard-container {
+      background: white;
+      padding: 30px;
+      border-radius: 8px;
+      max-width: 600px;
+      width: 100%;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    }
+    h1 {
+      text-align: center;
+      color: #333;
+    }
+    form {
+      display: flex;
+      margin-top: 20px;
+      margin-bottom: 30px;
+    }
+    input[type="text"] {
+      flex-grow: 1;
+      padding: 12px 15px;
+      font-size: 16px;
+      border: 1px solid #ccc;
+      border-radius: 6px 0 0 6px;
+      outline: none;
+      transition: border-color 0.3s ease;
+    }
+    input[type="text"]:focus {
+      border-color: #007BFF;
+    }
+    button {
+      padding: 12px 20px;
+      background-color: #007BFF;
+      color: white;
+      border: none;
+      border-radius: 0 6px 6px 0;
+      font-size: 16px;
+      cursor: pointer;
+      transition: background-color 0.3s ease;
+    }
+    button:hover {
+      background-color: #0056b3;
+    }
+    #bikeInfo {
+      background: #f9f9f9;
+      padding: 20px;
+      border-radius: 8px;
+      box-shadow: inset 0 0 5px rgba(0,0,0,0.05);
+      font-size: 16px;
+      line-height: 1.5;
+      color: #444;
+    }
+    #bikeInfo img {
+      max-width: 100%;
+      height: auto;
+      border-radius: 8px;
+      margin-bottom: 15px;
+      display: block;
+    }
+  </style>
+  <!-- Add Firebase SDKs -->
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+</head>
+<body>
+  <div class="dashboard-container">
+    <h1>Search for a Bike</h1>
+
+    <form id="searchForm">
+      <input type="text" id="bikeName" placeholder="Enter bike name" required />
+      <button type="submit">Search</button>
+    </form>
+
+    <div id="bikeInfo">
+      <p>Enter a bike name and click Search to see details.</p>
+    </div>
+  </div>
+
+  <script>
+    const firebaseConfig = {
+      apiKey: "AIzaSyDS3iN9um8L7J4N_6BvlyVBVmAJwYZGgt0",
+      authDomain: "bikes-website-8f494.firebaseapp.com",
+      databaseURL: "https://bikes-website-8f494-default-rtdb.firebaseio.com",
+      projectId: "bikes-website-8f494",
+      storageBucket: "bikes-website-8f494.firebasestorage.app",
+      messagingSenderId: "586062518714",
+      appId: "1:586062518714:web:47e8af50b55cfa03512583"
+    };
+
+    // Initialize Firebase
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
+
+    // Dummy bike data with images
+    const dummyBikes = {
+      "honda cbr": {
+        name: "Honda CBR",
+        model: "CBR150R",
+        engine: "649cc, Inline 4-cylinder",
+        price: "$9,000",
+        description: "Sport bike with aggressive styling and powerful engine.The Honda CBR150R, according to ARAI, claims a mileage of 38 kmpl. Real-world mileage reported by owners also hovers around 38 kmpl. With a 13-liter fuel tank, this means the bike can travel up to 490 km on a full tank. ",
+        image: "https://media.zigcdn.com/media/content/2016/Feb/honda-cbr-250rr-pic-image-photo-zigwheels-05102015-m1_720x540.jpg?tr=w-930"
+      },
+      "yamaha r15": {
+        name: "Yamaha R15",
+        model: "R15 V4",
+        engine: "155cc, Single-cylinder",
+        price: "$2,500",
+        description: "The Yamaha R15 V4 features a 155cc liquid-cooled, 4-stroke, SOHC engine, producing 18.4 PS of power and 14.2 Nm of torque. It's known for its sporty design and handling, with features like a quick shifter, traction control, and riding modes. The V4 model has a fuel tank capacity of 11 liters and a claimed mileage of 45 kmpl. The R15 V4 also boasts a top speed of 140 kmph. ",
+        image: "https://cdn.bikedekho.com/processedimages/yamaha/r15-v4/640X309/r15-v465f479fcabc10.jpg"
+      }
+    };
+
+    const form = document.getElementById('searchForm');
+    const bikeInfoDiv = document.getElementById('bikeInfo');
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const bikeNameInput = document.getElementById('bikeName').value.trim().toLowerCase();
+
+      if (!bikeNameInput) {
+        bikeInfoDiv.innerHTML = '<p>Please enter a bike name to search.</p>';
+        return;
+      }
+
+      bikeInfoDiv.innerHTML = '<p>Searching...</p>';
+
+      const bike = dummyBikes[bikeNameInput];
+
+      if (bike) {
+        bikeInfoDiv.innerHTML = `
+          <img src="${bike.image}" alt="${bike.name}" />
+          <h2>${bike.name}</h2>
+          <p><strong>Model:</strong> ${bike.model}</p>
+          <p><strong>Engine:</strong> ${bike.engine}</p>
+          <p><strong>Price:</strong> ${bike.price}</p>
+          <p><strong>Description:</strong> ${bike.description}</p>
+        `;
+      } else {
+        bikeInfoDiv.innerHTML = '<p>Bike not found.</p>';
+      }
+
+      // Save search history to Firestore (but not displayed on the page)
+      try {
+        await db.collection('searchHistory').add({
+          searchTerm: bikeNameInput,
+          result: bike ? bike.name : "Not found",
+          timestamp: new Date().toISOString()
+        });
+        console.log("Search history saved to Firestore.");
+      } catch (error) {
+        console.error("Error saving search history:", error);
+      }
+    });
+  </script>
+</body>
+</html>
